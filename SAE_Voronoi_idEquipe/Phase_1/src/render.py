@@ -9,7 +9,7 @@ def diagram_to_svg(diagram: dict) -> Image:
     return svg_diagram
 
 #Exportation de l'image du diagramme de Voronoï à un format voulu
-def export_diagram(svg_diagram: dict, format: str):
+def export_diagram(svg_diagram: Image, format: str):
     if format == "svg":
         pass
     elif format == "jpg":
