@@ -1,10 +1,10 @@
 from voronoi import calculer_diagramme
-from PIL import Image
+from PIL import Image, ImageDraw
 import math
 
 #Résultat du diagramme de Voronoï
 def get_diagram():
-    diagram = calculer_diagramme([(1, 2), (3, 4), (5, 6)])
+    diagram = calculer_diagramme([(2, 4), (5.3, 4.5), (18, 29), (12.5, 23.7)])
     return diagram
 
 #Conversion du diagramme de Voronoï en image PNG
@@ -19,9 +19,14 @@ def diagram_to_png(diagram: dict) -> Image:
 
     image_size = math.ceil(max(max(abs_edges)))
     image = Image.new("RGB", (image_size, image_size), "white")
-    image.show()
+    image_draw = ImageDraw.Draw(image)
 
-    print(image_size)
+    vertice_radius = 1
+    for vertice in vertices:
+        x, y = vertice
+        image_draw.ellipse((x - vertice_radius, y - vertice_radius, x + vertice_radius, y + vertice_radius), fill="black")
+
+    image.save("SAE_Voronoi_idEquipe\Phase_1\src\outputs\\test_diagram.png", "PNG")
     #png_diagram = Image.fromarray(diagram).convert("RGB")
     #return png_diagram
 
