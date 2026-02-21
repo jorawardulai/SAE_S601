@@ -1,23 +1,23 @@
 import json 
 
-def importFichier(filepath) :
+def importFichier(fichier) :
 
     coordonnee = []
 
-    if filepath.endswith(".txt") :
+    contenu = fichier.getvalue().decode("utf-8")
 
-        with open(filepath, 'r') as fichier :
-            for ligne in fichier :
-                if ligne.strip():
-                    x,y = ligne.strip().split(",")
-                    coordonnee.append([float(x), float(y)])
+    if fichier.name.endswith(".txt") :
 
-    elif filepath.endswith(".json") :
-        with open(filepath, "r") as fichier :
-            data = json.load(fichier)
+        for ligne in contenu.split("\n"):
+            if ligne.strip():
+                x,y = ligne.strip().split(",")
+                coordonnee.append([float(x), float(y)])
 
-            for p in data : 
-                coordonnee.append([float(p[0]), float(p[1])])
+    
+    elif fichier.name.endswith(".json") :
+        data = json.loads(contenu)
+        for p in data : 
+            coordonnee.append([float(p[0]), float(p[1])])
 
     
     return coordonnee
