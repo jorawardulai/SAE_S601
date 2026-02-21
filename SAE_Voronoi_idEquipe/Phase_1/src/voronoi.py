@@ -1,6 +1,6 @@
 from domain.point import Point
 from domain.segment import Segment
-from delaunay import delaunay  
+from delaunay_bw import delaunay  
 
 def voronoi(triangles):
     """Construit les arêtes de Voronoï à partir des triangles de Delaunay."""
