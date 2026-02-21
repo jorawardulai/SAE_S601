@@ -14,7 +14,7 @@ def importFichier(filepath) :
 
     elif filepath.endswith(".json") :
         with open(filepath, "r") as fichier :
-            data = json.load(fichier):
+            data = json.load(fichier)
 
             for p in data : 
                 coordonnee.append([float(p[0]), float(p[1])])
