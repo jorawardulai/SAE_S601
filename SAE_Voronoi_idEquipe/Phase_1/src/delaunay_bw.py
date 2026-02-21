@@ -2,7 +2,6 @@ from domain.point import Point
 from domain.triangle import Triangle
 
 def delaunay(points):
-    """Calcule la triangulation de Delaunay via l'algorithme de Bowyer-Watson."""
     p1 = Point(-50000, -50000)
     p2 = Point(50000, -50000)
     p3 = Point(0, 50000)
