@@ -1,5 +1,5 @@
-from domain.point import Point
-from domain.segment import Segment
+from .point import Point
+from .segment import Segment
 
 class Triangle:
     def __init__(self, p1, p2, p3):

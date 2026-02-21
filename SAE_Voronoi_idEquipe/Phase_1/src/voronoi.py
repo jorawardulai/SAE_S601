@@ -1,6 +1,6 @@
-from domain.point import Point
-from domain.segment import Segment
-from delaunay_bw import delaunay  
+from .domain.point import Point
+from .domain.segment import Segment
+from .delaunay_bw import delaunay  
 
 def voronoi(triangles):
     """Construit les arêtes de Voronoï à partir des triangles de Delaunay."""
@@ -23,8 +23,8 @@ def calculer_diagramme(liste_coordonnees: list[tuple]) -> dict:
     
     points_calcul = points.copy()
     points_calcul.extend([
-        Point(-5000, -5000), Point(5000, -5000),
-        Point(5000, 5000), Point(-5000, 5000)
+        Point(-50, -50), Point(50, -50),
+        Point(50, 50), Point(-50, 50)
     ])
     
     triangles = delaunay(points_calcul)
