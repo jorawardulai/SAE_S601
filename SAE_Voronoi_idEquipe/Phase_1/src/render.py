@@ -26,6 +26,10 @@ def diagram_to_png(diagram: dict) -> Image:
         x, y = vertice
         image_draw.ellipse((x - vertice_radius, y - vertice_radius, x + vertice_radius, y + vertice_radius), fill="black")
 
+    for edge in edges:
+        (x1, y1), (x2, y2) = edge
+        image_draw.line((x1, y1, x2, y2), fill="black", width=1)
+
     image.save("SAE_Voronoi_idEquipe\Phase_1\src\outputs\\test_diagram.png", "PNG")
     #png_diagram = Image.fromarray(diagram).convert("RGB")
     #return png_diagram
