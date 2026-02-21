@@ -1,7 +1,10 @@
 from PIL import Image
+from voronoi import calculer_diagramme
 
 #Résultat du diagramme de Voronoï
-diagram = {}
+def get_diagram():
+    diagram = calculer_diagramme([(1, 2), (3, 4), (5, 6)])
+    return diagram
 
 #Conversion du diagramme de Voronoï en image PNG
 def diagram_to_png(diagram: dict) -> Image:
@@ -18,6 +21,8 @@ def export_diagram(png_diagram: Image, format: str):
         pass
     else:
         raise ValueError("Format non supporté.")
-    
-image = Image.open("SAE_Voronoi_idEquipe\Phase_1\src\image.png")
-export_diagram(image, "jpg")
+
+diagram = get_diagram()
+print(diagram)
+#image = Image.open("SAE_Voronoi_idEquipe\Phase_1\src\image.png")
+#export_diagram(image, "jpg")
