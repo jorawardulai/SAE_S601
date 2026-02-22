@@ -14,6 +14,15 @@ def dessiner_diagramme(diagram):
     for (x1, y1), (x2, y2) in diagram["aretes"]:
         axe.plot([x1, x2], [y1, y2], 'b-')
     
+    if len(diagram["sommet"]) > 0:
+        x_coords = [p[0] for p in diagram["sommet"]]
+        y_coords = [p[1] for p in diagram["sommet"]]
+        
+        marge = 3 # On laisse 3 unités de marge autour de tes points
+        
+        axe.set_xlim(min(x_coords) - marge, max(x_coords) + marge)
+        axe.set_ylim(min(y_coords) - marge, max(y_coords) + marge)
+
     axe.set_title("Diagramme de Voronoï")
     axe.set_xlabel("X")
     axe.set_ylabel("Y")
