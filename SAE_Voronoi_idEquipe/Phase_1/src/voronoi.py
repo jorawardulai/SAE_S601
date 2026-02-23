@@ -25,16 +25,16 @@ def voronoi(triangles):
             A = arete.p1
             B = arete.p2
             
-            # On cherche le 3ème point du triangle
+            
             C = next(p for p in t.points if p != A and p != B)
             
-            # Calcul du vecteur perpendiculaire
+            
             dx = B.x - A.x
             dy = B.y - A.y
             nx = -dy
             ny = dx
             
-            # Vérification de la direction (pour que ça sorte vers l'extérieur)
+            
             mx = (A.x + B.x) / 2
             my = (A.y + B.y) / 2
             mcx = C.x - mx
@@ -44,7 +44,7 @@ def voronoi(triangles):
                 nx = -nx
                 ny = -ny
                 
-            # Normalisation
+            
             longueur = math.hypot(nx, ny)
             if longueur != 0:
                 nx /= longueur
