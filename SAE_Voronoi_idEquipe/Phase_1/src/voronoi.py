@@ -4,8 +4,8 @@ from .domain.segment import Segment
 from .delaunay_bw import delaunay  
 
 def voronoi(triangles):
-    """Construit les arêtes de Voronoï à partir des triangles de Delaunay."""
     aretes_partagees = {}
+    
     for t in triangles:
         for arete in t.aretes():
             if arete not in aretes_partagees:
@@ -16,57 +16,68 @@ def voronoi(triangles):
 
     for arete, liste_t in aretes_partagees.items():
         if len(liste_t) == 2:
-            # La ligne sépare deux triangles, on relie leurs centres.
             lignes_voronoi.append(Segment(liste_t[0].center, liste_t[1].center))
             
         elif len(liste_t) == 1:
-            # Il n'y a qu'un seul triangle, on doit faire "fuir" la ligne vers l'extérieur.
             t = liste_t[0]
             A = arete.p1
             B = arete.p2
             
-            
-            C = next(p for p in t.points if p != A and p != B)
-            
+            C = None
+            for p in t.points:
+                if p != A and p != B:
+                    C = p
+                    break 
             
             dx = B.x - A.x
             dy = B.y - A.y
+            
             nx = -dy
             ny = dx
             
+            milieu_x = (A.x + B.x) / 2
+            milieu_y = (A.y + B.y) / 2
             
-            mx = (A.x + B.x) / 2
-            my = (A.y + B.y) / 2
-            mcx = C.x - mx
-            mcy = C.y - my
+            vec_interieur_x = C.x - milieu_x
+            vec_interieur_y = C.y - milieu_y
             
-            if (nx * mcx + ny * mcy) > 0:
+            produit_scalaire = (nx * vec_interieur_x) + (ny * vec_interieur_y)
+            
+            if produit_scalaire > 0:
                 nx = -nx
                 ny = -ny
                 
+
+            longueur = math.sqrt((nx * nx) + (ny * ny)) 
             
-            longueur = math.hypot(nx, ny)
+            
             if longueur != 0:
-                nx /= longueur
-                ny /= longueur
+                nx = nx / longueur
+                ny = ny / longueur
                 
-            point_lointain = Point(t.center.x + nx * 5000, t.center.y + ny * 5000)
-            lignes_voronoi.append(Segment(t.center, point_lointain))
+            point_infini = Point(t.center.x + (nx * 9999), t.center.y + (ny * 9999))
+            lignes_voronoi.append(Segment(t.center, point_infini))
             
     return lignes_voronoi
 
-def calculer_diagramme(liste_coordonnees: list[tuple]) -> dict:
-    """
-    Entrée : Liste de tuples (x, y)
-    Sortie : Dictionnaire avec "sommet" et "aretes"
-    """
-    points = [Point(x, y) for x, y in liste_coordonnees]
+def calculer_diagramme(liste_coordonnees):
+    
+    points = []
+    for x, y in liste_coordonnees:
+        points.append(Point(x, y))
     
     triangles = delaunay(points)
-    
     lignes = voronoi(triangles)
     
-    return {
-        "sommet": [(p.x, p.y) for p in points],
-        "aretes": [((l.p1.x, l.p1.y), (l.p2.x, l.p2.y)) for l in lignes]
+    resultat = {
+        "sommet": [],
+        "aretes": []
     }
+    
+    for p in points:
+        resultat["sommet"].append((p.x, p.y))
+        
+    for l in lignes:
+        resultat["aretes"].append(((l.p1.x, l.p1.y), (l.p2.x, l.p2.y)))
+        
+    return resultat
