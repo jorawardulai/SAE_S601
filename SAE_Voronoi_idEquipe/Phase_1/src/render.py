@@ -23,8 +23,9 @@ def dessiner_diagramme(diagram):
         axe.set_xlim(min(x_coords) - marge, max(x_coords) + marge)
         axe.set_ylim(min(y_coords) - marge, max(y_coords) + marge)
 
-    axe.set_title("Diagramme de Voronoï")
-    axe.set_xlabel("X")
-    axe.set_ylabel("Y")
+    
+    axe.set_xticks([])
+    axe.set_yticks([])
+    
     
     return dessin
