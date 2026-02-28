@@ -1,162 +1,61 @@
-from typing import Tuple
-import math
+from typing import Tuple, List
 
 Point = Tuple[float, float]
 
 
-def orientation(a: Point, b: Point, c: Point) -> float:
-    """
-    Orientation signée du triplet (a, b, c).
-    > 0 : orientation anti-horaire
-    < 0 : orientation horaire
-    = 0 : colinéaire
-    """
-    return (b[0] - a[0]) * (c[1] - a[1]) - (b[1] - a[1]) * (c[0] - a[0])
+def compute_bounding_box(points: List[Point]) -> Tuple[float, float, float, float]:
+    """Retourne (min_x, min_y, max_x, max_y) pour une liste de points."""
+    xs = [p[0] for p in points]
+    ys = [p[1] for p in points]
+    return min(xs), min(ys), max(xs), max(ys)
 
 
-def circumcenter(a: Point, b: Point, c: Point) -> Point:
+def circumcircle(p1: Point, p2: Point, p3: Point):
     """
-    Calcule le centre du cercle circonscrit au triangle (a, b, c).
+    Calcule le cercle circonscrit au triangle (p1, p2, p3).
+    Retourne (centre_x, centre_y, rayon_carré).
 
-    Formule basée sur l'intersection des médiatrices.
-    On suppose que les points ne sont pas colinéaires.
+    Si les points sont colinéaires, retourne un cercle très grand
+    (centre moyen, rayon énorme) pour éviter les problèmes numériques.
     """
-    d = 2 * (a[0] * (b[1] - c[1]) +
-             b[0] * (c[1] - a[1]) +
-             c[0] * (a[1] - b[1]))
+    (x1, y1), (x2, y2), (x3, y3) = p1, p2, p3
+
+    # Formule classique basée sur les déterminants
+    d = 2 * (
+        x1 * (y2 - y3)
+        + x2 * (y3 - y1)
+        + x3 * (y1 - y2)
+    )
+
     if abs(d) < 1e-12:
-        # Triangle quasi-dégénéré : on renvoie un centre approximatif (moyenne)
-        return ((a[0] + b[0] + c[0]) / 3.0, (a[1] + b[1] + c[1]) / 3.0)
+        # Points quasi colinéaires : on renvoie un cercle "infini"
+        cx = (x1 + x2 + x3) / 3.0
+        cy = (y1 + y2 + y3) / 3.0
+        r2 = 1e30
+        return cx, cy, r2
 
     ux = (
-        (a[0] ** 2 + a[1] ** 2) * (b[1] - c[1]) +
-        (b[0] ** 2 + b[1] ** 2) * (c[1] - a[1]) +
-        (c[0] ** 2 + c[1] ** 2) * (a[1] - b[1])
+        (x1**2 + y1**2) * (y2 - y3)
+        + (x2**2 + y2**2) * (y3 - y1)
+        + (x3**2 + y3**2) * (y1 - y2)
     ) / d
 
     uy = (
-        (a[0] ** 2 + a[1] ** 2) * (c[0] - b[0]) +
-        (b[0] ** 2 + b[1] ** 2) * (a[0] - c[0]) +
-        (c[0] ** 2 + c[1] ** 2) * (b[0] - a[0])
+        (x1**2 + y1**2) * (x3 - x2)
+        + (x2**2 + y2**2) * (x1 - x3)
+        + (x3**2 + y3**2) * (x2 - x1)
     ) / d
 
-    return (ux, uy)
+    r2 = (ux - x1) ** 2 + (uy - y1) ** 2
+    return ux, uy, r2
 
 
-def squared_distance(p: Point, q: Point) -> float:
-    """Distance au carré entre deux points."""
-    return (p[0] - q[0]) ** 2 + (p[1] - q[1]) ** 2
-
-
-def is_point_in_circumcircle(p: Point, a: Point, b: Point, c: Point) -> bool:
+def point_in_circumcircle(point: Point, center: Point, radius_sq: float) -> bool:
     """
-    Teste si le point p est strictement à l'intérieur du cercle circonscrit
-    au triangle (a, b, c).
-
-    Utilise le déterminant orienté classique pour Delaunay.
+    Teste si un point est strictement à l'intérieur du cercle circonscrit.
+    On autorise une petite marge pour les erreurs numériques.
     """
-    # On s'assure que (a, b, c) est en orientation anti-horaire
-    if orientation(a, b, c) < 0:
-        b, c = c, b
-
-    ax, ay = a[0] - p[0], a[1] - p[1]
-    bx, by = b[0] - p[0], b[1] - p[1]
-    cx, cy = c[0] - p[0], c[1] - p[1]
-
-    det = (
-        (ax * ax + ay * ay) * (bx * cy - cx * by)
-        - (bx * bx + by * by) * (ax * cy - cx * ay)
-        + (cx * cx + cy * cy) * (ax * by - bx * ay)
-    )
-
-    return det > 1e-12
-
-
-def bounding_box(points):
-    """Retourne (min_x, max_x, min_y, max_y) pour une liste de points."""
-    xs = [p[0] for p in points]
-    ys = [p[1] for p in points]
-    return min(xs), max(xs), min(ys), max(ys)
-
-
-def expand_bbox(bbox, margin_ratio=0.1):
-    """
-    Agrandit un rectangle englobant de margin_ratio (10% par défaut)
-    pour gérer les bords du Voronoï.
-    """
-    min_x, max_x, min_y, max_y = bbox
-    width = max_x - min_x
-    height = max_y - min_y
-    if width == 0:
-        width = 1.0
-    if height == 0:
-        height = 1.0
-    dx = width * margin_ratio
-    dy = height * margin_ratio
-    return min_x - dx, max_x + dx, min_y - dy, max_y + dy
-
-
-def clip_polygon_to_bbox(polygon, bbox):
-    """
-    Clippe un polygone convexe à un rectangle englobant via Sutherland-Hodgman.
-
-    polygon : liste de points (x, y)
-    bbox    : (min_x, max_x, min_y, max_y)
-    """
-    min_x, max_x, min_y, max_y = bbox
-
-    def clip_edge(points, inside, intersect):
-        if not points:
-            return []
-        output = []
-        prev = points[-1]
-        prev_inside = inside(prev)
-        for curr in points:
-            curr_inside = inside(curr)
-            if curr_inside:
-                if not prev_inside:
-                    output.append(intersect(prev, curr))
-                output.append(curr)
-            elif prev_inside:
-                output.append(intersect(prev, curr))
-            prev, prev_inside = curr, curr_inside
-        return output
-
-    # Clip gauche
-    polygon = clip_edge(
-        polygon,
-        inside=lambda p: p[0] >= min_x,
-        intersect=lambda p1, p2: (
-            min_x,
-            p1[1] + (p2[1] - p1[1]) * (min_x - p1[0]) / (p2[0] - p1[0]),
-        ),
-    )
-    # Clip droite
-    polygon = clip_edge(
-        polygon,
-        inside=lambda p: p[0] <= max_x,
-        intersect=lambda p1, p2: (
-            max_x,
-            p1[1] + (p2[1] - p1[1]) * (max_x - p1[0]) / (p2[0] - p1[0]),
-        ),
-    )
-    # Clip bas
-    polygon = clip_edge(
-        polygon,
-        inside=lambda p: p[1] >= min_y,
-        intersect=lambda p1, p2: (
-            p1[0] + (p2[0] - p1[0]) * (min_y - p1[1]) / (p2[1] - p1[1]),
-            min_y,
-        ),
-    )
-    # Clip haut
-    polygon = clip_edge(
-        polygon,
-        inside=lambda p: p[1] <= max_y,
-        intersect=lambda p1, p2: (
-            p1[0] + (p2[0] - p1[0]) * (max_y - p1[1]) / (p2[1] - p1[1]),
-            max_y,
-        ),
-    )
-
-    return polygon
+    dx = point[0] - center[0]
+    dy = point[1] - center[1]
+    dist_sq = dx * dx + dy * dy
+    return dist_sq <= radius_sq * (1 + 1e-12)
