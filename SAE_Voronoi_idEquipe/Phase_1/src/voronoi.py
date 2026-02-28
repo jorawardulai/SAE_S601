@@ -4,6 +4,23 @@ from .domain.segment import Segment
 from .delaunay_bw import delaunay  
 
 def voronoi(triangles):
+
+    tous_les_x = []
+    tous_les_y = []
+    for t in triangles:
+        for p in t.points:
+            tous_les_x.append(p.x)
+            tous_les_y.append(p.y)
+            
+    if tous_les_x and tous_les_y:
+        largeur = max(tous_les_x) - min(tous_les_x)
+        hauteur = max(tous_les_y) - min(tous_les_y)
+        distance_max = max(largeur, hauteur) * 10
+        if distance_max == 0:
+            distance_max = 1000
+    else:
+        distance_max = 9999
+
     aretes_partagees = {}
     
     for t in triangles:
@@ -55,7 +72,7 @@ def voronoi(triangles):
                 nx = nx / longueur
                 ny = ny / longueur
                 
-            point_infini = Point(t.center.x + (nx * 9999), t.center.y + (ny * 9999))
+            point_infini = Point(t.center.x + (nx * distance_max), t.center.y + (ny * distance_max))
             lignes_voronoi.append(Segment(t.center, point_infini))
             
     return lignes_voronoi
