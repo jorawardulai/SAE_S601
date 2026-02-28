@@ -30,19 +30,35 @@ if uploaded_file is not None:
         diagramme = calculer_diagramme(coordonnee)
        
         dessin = dessiner_diagramme(diagramme)
-        st.write("Dessin du diagramme de Voronoï :")
+        st.write("Diagramme de Voronoï généré:")
         st.pyplot(dessin)
 
+        # --- EXPORT PNG ---
+        png_buffer = io.BytesIO()
+        dessin.savefig(png_buffer, format="png", bbox_inches="tight")
+        png_buffer.seek(0)
+
+        st.download_button(
+            "Télécharger en PNG",
+            data=png_buffer,
+            file_name="diagramme_voronoi.png",
+            mime="image/png"
+        )
+
+        # --- EXPORT SVG ---
+        svg_buffer = io.BytesIO()
+        dessin.savefig(svg_buffer, format="svg", bbox_inches="tight")
+        svg_buffer.seek(0)
+
+        st.download_button(
+            "Télécharger en SVG",
+            data=svg_buffer,
+            file_name="diagramme_voronoi.svg",
+            mime="image/svg+xml"
+        )
         
 
     except Exception as e:
         st.error(traceback.format_exc())
-
-# Recupere l'image depuis le backend
-
-#Afficher l'image 
-#st.pyplot("??")
-#st.download_button("Télecharger l'image en SVG",data= io.BytesIO("??"),file_name="voronoi.svg",mime="image/svg+xml")
-#st.download_button("Télecharger l'image en PNG",data= io.BytesIO("??"),file_name="voronoi.png",mime="image/png")
 
 
