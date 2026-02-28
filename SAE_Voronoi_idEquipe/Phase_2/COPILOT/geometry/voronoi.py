@@ -1,81 +1,160 @@
-from typing import Dict, List, Tuple
-import math
+"""
+Construction du diagramme de Voronoï à partir d'une triangulation de Delaunay.
 
-from .utils import (
-    circumcenter,
-    bounding_box,
-    expand_bbox,
-    clip_polygon_to_bbox
-)
+Version simple et robuste :
+- On utilise la triangulation de Delaunay pour obtenir, pour chaque point,
+  la liste de ses voisins (points reliés par une arête de Delaunay).
+- Pour chaque point P, on construit sa cellule de Voronoï comme
+  l'intersection de demi-plans :
+      { x | dist(x, P) <= dist(x, Q) } pour chaque voisin Q
+  le tout intersecté avec un grand rectangle englobant (bounding box élargie).
 
-Point = Tuple[float, float]
-TriangleIndices = Tuple[int, int, int]
+Cela produit des cellules fermées (même pour les points sur le bord),
+clippées dans un rectangle, ce qui donne un rendu propre et stable.
+"""
+
+from typing import List, Tuple, Dict, Set
+from collections import defaultdict
+
+from .delaunay import Triangle, Point
+from .utils import compute_bounding_box
 
 
-def build_voronoi_diagram(
+def _build_point_neighbors(triangles: List[Triangle]) -> Dict[int, Set[int]]:
+    """
+    Construit, pour chaque point, l'ensemble de ses voisins dans la triangulation
+    de Delaunay (points reliés par une arête).
+    """
+    neighbors: Dict[int, Set[int]] = defaultdict(set)
+    for tri in triangles:
+        a, b, c = tri.vertices
+        neighbors[a].add(b)
+        neighbors[a].add(c)
+        neighbors[b].add(a)
+        neighbors[b].add(c)
+        neighbors[c].add(a)
+        neighbors[c].add(b)
+    return neighbors
+
+
+def _clip_polygon_with_halfplane(
+    polygon: List[Point],
+    p: Point,
+    q: Point,
+) -> List[Point]:
+    """
+    Clippe un polygone convexe par le demi-plan :
+        { x | dist(x, p) <= dist(x, q) }
+
+    En pratique, on utilise la forme linéaire :
+        x · (q - p) <= (||q||² - ||p||²) / 2
+
+    On applique un algorithme de type Sutherland–Hodgman pour ce demi-plan.
+    """
+    if not polygon:
+        return []
+
+    px, py = p
+    qx, qy = q
+    vx = qx - px
+    vy = qy - py
+    c = (qx * qx + qy * qy - px * px - py * py) / 2.0
+
+    def inside(pt: Point) -> bool:
+        x, y = pt
+        return x * vx + y * vy <= c + 1e-12
+
+    def intersect(p1: Point, p2: Point) -> Point:
+        x1, y1 = p1
+        x2, y2 = p2
+        dx = x2 - x1
+        dy = y2 - y1
+        denom = dx * vx + dy * vy
+        if abs(denom) < 1e-18:
+            # Segment presque parallèle à la frontière : on renvoie un point arbitraire
+            return p1
+        t = (c - (x1 * vx + y1 * vy)) / denom
+        return (x1 + t * dx, y1 + t * dy)
+
+    res: List[Point] = []
+    prev = polygon[-1]
+    prev_inside = inside(prev)
+
+    for curr in polygon:
+        curr_inside = inside(curr)
+        if curr_inside:
+            if not prev_inside:
+                res.append(intersect(prev, curr))
+            res.append(curr)
+        elif prev_inside:
+            res.append(intersect(prev, curr))
+        prev, prev_inside = curr, curr_inside
+
+    return res
+
+
+def build_voronoi_cells(
     points: List[Point],
-    triangles: List[TriangleIndices],
-    super_indices: Tuple[int, int, int],
-):
+    triangles: List[Triangle],
+) -> Dict[int, List[Point]]:
     """
-    Version B : Voronoï simple et stable.
-    - Chaque cellule est construite à partir des centres des triangles incident au point.
-    - On ajoute explicitement le point lui-même dans le polygone.
-    - On clippe le résultat dans un rectangle englobant élargi.
-    - Résultat : chaque point est bien englobé dans sa cellule, rendu propre et lisible.
+    Construit les cellules de Voronoï à partir d'une triangulation de Delaunay.
+
+    Pour chaque point i :
+        - On part d'un grand rectangle englobant (bounding box élargie).
+        - On intersecte ce rectangle avec les demi-plans "plus proche de i que de j"
+          pour tous les voisins j de i dans la triangulation.
+        - Le résultat est un polygone convexe : la cellule de Voronoï de i,
+          clippée dans la bounding box.
+
+    Retourne :
+        dict : point_index -> liste de sommets (points 2D) de la cellule.
     """
+    if not triangles or not points:
+        return {}
 
-    n_points = len(points)
-    super_set = set(super_indices)
+    # Bounding box élargie pour fermer les cellules infinies
+    min_x, min_y, max_x, max_y = compute_bounding_box(points)
+    dx = max_x - min_x
+    dy = max_y - min_y
+    delta = max(dx, dy)
+    if delta == 0:
+        delta = 1.0
+    margin = delta * 0.5
 
-    # --- 1. Calcul des centres des cercles circonscrits ---
-    triangle_circumcenters: List[Point] = []
-    for (i, j, k) in triangles:
-        a, b, c = points[i], points[j], points[k]
-        center = circumcenter(a, b, c)
-        triangle_circumcenters.append(center)
+    bbox_min_x = min_x - margin
+    bbox_min_y = min_y - margin
+    bbox_max_x = max_x + margin
+    bbox_max_y = max_y + margin
 
-    # --- 2. Triangles incident à chaque point ---
-    point_to_triangles: Dict[int, List[int]] = {i: [] for i in range(n_points)}
-    for t_idx, (i, j, k) in enumerate(triangles):
-        point_to_triangles[i].append(t_idx)
-        point_to_triangles[j].append(t_idx)
-        point_to_triangles[k].append(t_idx)
+    # Polygone initial : le rectangle englobant
+    bbox_polygon: List[Point] = [
+        (bbox_min_x, bbox_min_y),
+        (bbox_max_x, bbox_min_y),
+        (bbox_max_x, bbox_max_y),
+        (bbox_min_x, bbox_max_y),
+    ]
 
-    # --- 3. Bbox réel (sans super-triangle) ---
-    real_points = [p for idx, p in enumerate(points) if idx not in super_set]
-    bbox = bounding_box(real_points)
-    bbox_expanded = expand_bbox(bbox, margin_ratio=0.15)
+    # Voisins par point via la triangulation
+    neighbors = _build_point_neighbors(triangles)
 
     voronoi_cells: Dict[int, List[Point]] = {}
 
-    # --- 4. Construction des cellules ---
-    for p_idx in range(n_points):
-        if p_idx in super_set:
-            continue  # pas de cellule pour les sommets du super-triangle
-
-        tri_indices = point_to_triangles[p_idx]
-        if not tri_indices:
-            voronoi_cells[p_idx] = []
+    for i, p in enumerate(points):
+        if i not in neighbors or not neighbors[i]:
+            # Pas de voisins (cas très pathologique) : on ignore
             continue
 
-        px, py = points[p_idx]
+        poly = bbox_polygon[:]
+        for j in neighbors[i]:
+            q = points[j]
+            poly = _clip_polygon_with_halfplane(poly, p, q)
+            if len(poly) < 3:
+                # Cellule dégénérée : on arrête
+                poly = []
+                break
 
-        # Centres des triangles incident à ce point
-        centers = [triangle_circumcenters[t_idx] for t_idx in tri_indices]
+        if len(poly) >= 3:
+            voronoi_cells[i] = poly
 
-        # --- Ajout du point lui-même ---
-        # Cela garantit que la cellule englobe bien le point.
-        raw_poly = centers + [points[p_idx]]
-
-        # Tri angulaire autour du point
-        centers_sorted = sorted(
-            raw_poly,
-            key=lambda c: math.atan2(c[1] - py, c[0] - px),
-        )
-
-        # Clip du polygone au rectangle englobant
-        clipped = clip_polygon_to_bbox(centers_sorted, bbox_expanded)
-        voronoi_cells[p_idx] = clipped
-
-    return voronoi_cells, bbox_expanded
+    return voronoi_cells

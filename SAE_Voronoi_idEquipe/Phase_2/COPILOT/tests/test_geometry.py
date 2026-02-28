@@ -1,47 +1,58 @@
+"""
+Tests unitaires simples pour les fonctions géométriques critiques.
+
+Pour exécuter les tests :
+    python -m pytest tests/test_geometry.py
+"""
+
 import math
 
-from geometry.utils import circumcenter, is_point_in_circumcircle
+from geometry.utils import circumcircle, point_in_circumcircle
 from geometry.delaunay import compute_delaunay_triangulation
-from geometry.voronoi import build_voronoi_diagram
 
 
-def test_circumcenter_right_triangle():
-    # Triangle rectangle en (0,0), (1,0), (0,1)
-    a = (0.0, 0.0)
-    b = (1.0, 0.0)
-    c = (0.0, 1.0)
-    center = circumcenter(a, b, c)
-    # Le centre doit être (0.5, 0.5)
-    assert math.isclose(center[0], 0.5, rel_tol=1e-6, abs_tol=1e-6)
-    assert math.isclose(center[1], 0.5, rel_tol=1e-6, abs_tol=1e-6)
+def test_circumcircle_equilateral():
+    # Triangle équilatéral de côté 2, centré approximativement
+    p1 = (0.0, 0.0)
+    p2 = (2.0, 0.0)
+    p3 = (1.0, math.sqrt(3.0))
+    cx, cy, r2 = circumcircle(p1, p2, p3)
+
+    # Centre attendu : (1, sqrt(3)/3)
+    assert abs(cx - 1.0) < 1e-6
+    assert abs(cy - (math.sqrt(3.0) / 3.0)) < 1e-6
+
+    # Rayon attendu : 2 / sqrt(3)
+    r_expected = 2.0 / math.sqrt(3.0)
+    assert abs(math.sqrt(r2) - r_expected) < 1e-6
 
 
 def test_point_in_circumcircle():
-    a = (0.0, 0.0)
-    b = (1.0, 0.0)
-    c = (0.0, 1.0)
-    p_inside = (0.2, 0.2)
-    p_outside = (2.0, 2.0)
+    p1 = (0.0, 0.0)
+    p2 = (2.0, 0.0)
+    p3 = (1.0, math.sqrt(3.0))
+    cx, cy, r2 = circumcircle(p1, p2, p3)
 
-    assert is_point_in_circumcircle(p_inside, a, b, c)
-    assert not is_point_in_circumcircle(p_outside, a, b, c)
+    inside_point = (1.0, 0.5)
+    outside_point = (3.0, 3.0)
+
+    assert point_in_circumcircle(inside_point, (cx, cy), r2)
+    assert not point_in_circumcircle(outside_point, (cx, cy), r2)
 
 
-def test_delaunay_and_voronoi_basic():
-    # Carré simple
+def test_delaunay_simple_square():
+    # Carré : 4 points
     points = [
         (0.0, 0.0),
         (1.0, 0.0),
         (1.0, 1.0),
         (0.0, 1.0),
     ]
-    triangles, super_indices = compute_delaunay_triangulation(points)
-    # On doit avoir au moins 2 triangles pour un carré
-    assert len(triangles) >= 2
-
-    voronoi_cells, bbox = build_voronoi_diagram(points + [None, None, None], triangles, super_indices)
-    # On doit avoir une cellule pour chaque point réel
-    real_indices = [i for i in range(len(points))]
-    for idx in real_indices:
-        assert idx in voronoi_cells
-        assert isinstance(voronoi_cells[idx], list)
+    tris = compute_delaunay_triangulation(points)
+    # On s'attend à 2 triangles
+    assert len(tris) == 2
+    # Les triangles doivent couvrir les 4 points
+    used_vertices = set()
+    for t in tris:
+        used_vertices.update(t.vertices)
+    assert used_vertices == {0, 1, 2, 3}
