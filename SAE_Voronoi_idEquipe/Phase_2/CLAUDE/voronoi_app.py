@@ -424,11 +424,14 @@ def generate_colors(n, palette="pastel", seed=42):
         rng.shuffle(colors)
         return colors
     elif palette == "earth":
+        # Tuples RGB normalisés (0-1) — pas besoin de mcolors
         base = [
-            "#8B6F47","#A0785A","#C4956A","#D4A96A","#B5835A",
-            "#7A6B50","#9B8C6B","#C8A97A","#B09060","#8A7055",
+            (0.545, 0.435, 0.278), (0.627, 0.471, 0.353), (0.769, 0.584, 0.416),
+            (0.831, 0.663, 0.416), (0.710, 0.514, 0.353), (0.478, 0.420, 0.314),
+            (0.608, 0.549, 0.420), (0.784, 0.663, 0.478), (0.690, 0.565, 0.376),
+            (0.541, 0.439, 0.333),
         ]
-        return [mcolors.to_rgb(base[i % len(base)]) for i in range(n)]
+        return [base[i % len(base)] for i in range(n)]
     else:  # random
         return [(rng.random(), rng.random(), rng.random()) for _ in range(n)]
 
