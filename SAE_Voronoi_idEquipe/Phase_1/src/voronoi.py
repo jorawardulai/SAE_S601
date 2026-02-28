@@ -87,12 +87,12 @@ def calculer_diagramme(liste_coordonnees):
     lignes = voronoi(triangles)
     
     resultat = {
-        "sommet": [],
+        "sommets": [],
         "aretes": []
     }
     
     for p in points:
-        resultat["sommet"].append((p.x, p.y))
+        resultat["sommets"].append((p.x, p.y))
         
     for l in lignes:
         resultat["aretes"].append(((l.p1.x, l.p1.y), (l.p2.x, l.p2.y)))
