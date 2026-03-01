@@ -2,9 +2,9 @@ from .domain.point import Point
 from .domain.triangle import Triangle
 
 def delaunay(points):
-    p1 = Point(-50, -50)
-    p2 = Point(50, -50)
-    p3 = Point(0, 50)
+    p1 = Point(-5000, -5000)
+    p2 = Point(5000, -5000)
+    p3 = Point(0, 5000)
     super_t = Triangle(p1, p2, p3)
     
     triangles = [super_t]
