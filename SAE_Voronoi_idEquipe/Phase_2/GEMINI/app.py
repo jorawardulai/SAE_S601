@@ -1,3 +1,5 @@
+#code Generer avec GEMINI
+
 import streamlit as st
 import json, random
 import matplotlib.pyplot as plt
