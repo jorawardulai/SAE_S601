@@ -1,0 +1,45 @@
+# Fichier de points 2D pour le diagramme de Voronoï
+# Format : x y  (séparateur espace)
+# Une paire de coordonnées par ligne
+# Lignes commençant par # ignorées
+
+# ── Cluster centre ───────────────────────────────
+260  270
+290  250
+240  300
+310  280
+275  230
+
+# ── Cluster haut-gauche ──────────────────────────
+80    60
+130   90
+60   140
+110  130
+90    40
+
+# ── Cluster haut-droit ───────────────────────────
+480   70
+520  110
+460  130
+540   50
+500  160
+
+# ── Cluster bas-gauche ───────────────────────────
+70   470
+120  500
+50   420
+140  440
+100  390
+
+# ── Cluster bas-droit ────────────────────────────
+490  460
+540  420
+470  510
+520  490
+450  440
+
+# ── Points isolés ────────────────────────────────
+270   40
+30   280
+560  300
+300  560
